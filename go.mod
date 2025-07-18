@@ -1,9 +1,9 @@
-module gitlab.findmykids.org/fmk-pkg/logger
+module github.com/egordigitax/logger
 
 go 1.20
 
 require (
-	github.com/lexx13/zerolog-sentry v1.0.1
+	github.com/egordigitax/zerolog-sentry v0.0.1
 	github.com/rs/zerolog v1.31.0
 	github.com/urfave/cli/v2 v2.25.7
 )
