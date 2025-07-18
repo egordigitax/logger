@@ -1,0 +1,12 @@
+.idea
+.run
+.env
+vendor/
+build/bin/
+deployments/local-env/data/
+config-*.yml
+cover.out
+example.yml
+dev.yml
+prod.yml
+.DS_Store
