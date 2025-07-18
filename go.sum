@@ -4,8 +4,8 @@ github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
-github.com/egordigitax/zerolog-sentry v0.0.2 h1:OmcSEpn8pI0UWsT4NF0kXUlOkoCyN9OimUS/ibMfEKM=
-github.com/egordigitax/zerolog-sentry v0.0.2/go.mod h1:2GuggIksx4alm6GZUa1HiaYluGVkYO5ldGqFOkb567s=
+github.com/egordigitax/zerolog-sentry v0.0.3 h1:DFOjltl2F2y+3gOloBg12uKOSP1q9ysKzRbJqKee00E=
+github.com/egordigitax/zerolog-sentry v0.0.3/go.mod h1:2GuggIksx4alm6GZUa1HiaYluGVkYO5ldGqFOkb567s=
 github.com/getsentry/sentry-go v0.21.0 h1:c9l5F1nPF30JIppulk4veau90PK6Smu3abgVtVQWon4=
 github.com/getsentry/sentry-go v0.21.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
