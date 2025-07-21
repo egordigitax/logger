@@ -80,7 +80,7 @@ func GRPCInterceptor(logger *zerolog.Logger) grpc.UnaryServerInterceptor {
 				Str("user_id", tryGetUserId).
 				Interface("request", req).
 				Err(err).
-				Msg(fmt.Sprintf("%s handle http request", info.FullMethod))
+				Msg(fmt.Sprintf("%s handle grpc request", info.FullMethod))
 		}
 		return resp, err
 	}
