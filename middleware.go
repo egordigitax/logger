@@ -118,26 +118,31 @@ func extractUserIDViaJSON(req interface{}) (string, bool) {
 }
 
 func DefaultLogLevelSpecifier(
-	logger *zerolog.Logger,
 	apiErrors []error,
+) func(
+	logger *zerolog.Logger,
 	err error,
 ) (*zerolog.Event, error) {
-	if err == nil {
-		return logger.Info(), nil
-	}
-
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) && fiberErr.Code == fiber.StatusNotFound {
-		return logger.Info().Err(err), fiberErr
-	}
-
-	for _, apiErr := range apiErrors {
-		if errors.Is(err, apiErr) {
-			return logger.Info().Err(apiErr), err
+	return func(
+		logger *zerolog.Logger,
+		err error,
+	) (*zerolog.Event, error) {
+		if err == nil {
+			return logger.Info(), nil
 		}
-	}
 
-	return logger.Info().Err(err), errors.New("internal server error")
+		var fiberErr *fiber.Error
+		if errors.As(err, &fiberErr) && fiberErr.Code == fiber.StatusNotFound {
+			return logger.Info().Err(err), fiberErr
+		}
+
+		for _, apiErr := range apiErrors {
+			if errors.Is(err, apiErr) {
+				return logger.Info().Err(apiErr), err
+			}
+		}
+		return logger.Info().Err(err), errors.New("internal server error")
+	}
 }
 
 func DefaultUserIDGetter(conf *crypto.Config) UserIDGetter {
