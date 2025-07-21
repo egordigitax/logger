@@ -17,6 +17,7 @@ import (
 
 type UserIDGetter func(token string) string
 type LogLevelSpecifier func(logger *zerolog.Logger, err error) (*zerolog.Event, error)
+type ApiErrorClassifier func(err error) (error, bool)
 
 func FiberMiddleware(
 	baseLogger *zerolog.Logger,
@@ -118,7 +119,7 @@ func extractUserIDViaJSON(req interface{}) (string, bool) {
 }
 
 func DefaultLogLevelSpecifier(
-	apiErrors []error,
+	ApiErrorClassifier ApiErrorClassifier,
 ) func(
 	logger *zerolog.Logger,
 	err error,
@@ -136,11 +137,10 @@ func DefaultLogLevelSpecifier(
 			return logger.Info().Err(err), fiberErr
 		}
 
-		for _, apiErr := range apiErrors {
-			if errors.Is(err, apiErr) {
-				return logger.Info().Err(apiErr), err
-			}
+		if apiErr, ok := ApiErrorClassifier(err); ok {
+			return logger.Info().Err(err), apiErr
 		}
+
 		return logger.Info().Err(err), errors.New("internal server error")
 	}
 }
