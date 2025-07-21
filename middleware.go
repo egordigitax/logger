@@ -138,10 +138,10 @@ func DefaultLogLevelSpecifier(
 		}
 
 		if apiErr, ok := ApiErrorClassifier(err); ok {
-			return logger.Info().Err(err), apiErr
+			return logger.Warn().Err(err), apiErr
 		}
 
-		return logger.Info().Err(err), errors.New("internal server error")
+		return logger.Error().Err(err), errors.New("internal server error")
 	}
 }
 
