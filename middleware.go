@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -139,6 +140,10 @@ func DefaultLogLevelSpecifier(
 
 		if apiErr, ok := ApiErrorClassifier(err); ok {
 			return logger.Warn().Err(err), apiErr
+		}
+
+		if strings.Contains(strings.ToLower(err.Error()), "deadline") {
+			return logger.Warn().Err(err), err
 		}
 
 		return logger.Error().Err(err), errors.New("internal server error")
