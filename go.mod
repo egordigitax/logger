@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.3
 
 require (
-	github.com/egordigitax/zerolog-sentry v0.0.3
+	github.com/egordigitax/zerolog-sentry v0.0.4
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/rs/zerolog v1.31.0
 	github.com/urfave/cli/v2 v2.25.7
