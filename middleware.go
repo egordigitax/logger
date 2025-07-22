@@ -165,8 +165,7 @@ func DefaultLogLevelSpecifier(
 func SendEvent(event *zerolog.Event, msg string) {
 	for _, keyword := range DefaultCombineInfraErrors() {
 		if strings.Contains(msg, keyword) {
-			event.Str("fingerprint", "infra")
-			event.Msg("infra problems")
+			event.Str("fingerprint", "infra").Msg("infra problems")
 			return
 		}
 	}
