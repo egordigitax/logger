@@ -56,7 +56,7 @@ func FiberMiddleware(
 			Int("status", c.Response().StatusCode()).
 			Dur("resp_time", time.Since(start))
 
-		SendEvent(event, fmt.Sprintf("%s handle http request", c.Path()))
+		SendEvent(event, err, fmt.Sprintf("%s handle http request", c.Path()))
 
 		return err
 	}
@@ -86,7 +86,7 @@ func GRPCInterceptor(
 				Interface("request", req).
 				Err(err)
 
-			SendEvent(event, fmt.Sprintf("%s handle grpc request", info.FullMethod))
+			SendEvent(event, err, fmt.Sprintf("%s handle grpc request", info.FullMethod))
 		}
 		return resp, err
 	}
@@ -162,9 +162,9 @@ func DefaultLogLevelSpecifier(
 	}
 }
 
-func SendEvent(event *zerolog.Event, msg string) {
+func SendEvent(event *zerolog.Event, err error, msg string) {
 	for _, keyword := range DefaultCombineInfraErrors() {
-		if strings.Contains(msg, keyword) {
+		if strings.Contains(err.Error(), keyword) {
 			event.Str("fingerprint", "infra").Msg("infra problems")
 			return
 		}
