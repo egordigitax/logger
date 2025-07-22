@@ -51,11 +51,12 @@ func FiberMiddleware(
 
 		log, _ := logLevelSpecifier(&enrichedLogger, err)
 
-		log.Str("body", string(c.Request().Body())).
+		event := log.Str("body", string(c.Request().Body())).
 			Str("response", string(c.Response().Body())).
 			Int("status", c.Response().StatusCode()).
-			Dur("resp_time", time.Since(start)).
-			Msg(fmt.Sprintf("%s handle http request", c.Path()))
+			Dur("resp_time", time.Since(start))
+
+		SendEvent(event, fmt.Sprintf("%s handle http request", c.Path()))
 
 		return err
 	}
@@ -80,11 +81,12 @@ func GRPCInterceptor(
 
 			log, _ := logLevelSpecifier(logger, err)
 
-			log.Str("method", info.FullMethod).
+			event := log.Str("method", info.FullMethod).
 				Str("user_id", tryGetUserId).
 				Interface("request", req).
-				Err(err).
-				Msg(fmt.Sprintf("%s handle grpc request", info.FullMethod))
+				Err(err)
+
+			SendEvent(event, fmt.Sprintf("%s handle grpc request", info.FullMethod))
 		}
 		return resp, err
 	}
@@ -160,6 +162,18 @@ func DefaultLogLevelSpecifier(
 	}
 }
 
+func SendEvent(event *zerolog.Event, msg string) {
+	for _, keyword := range DefaultCombineInfraErrors() {
+		if strings.Contains(msg, keyword) {
+			event.Str("fingerprint", "infra")
+			event.Msg("infra problems")
+			return
+		}
+	}
+	event.Msg(msg)
+	return
+}
+
 func DefaultUserIDGetter(conf *crypto.Config) UserIDGetter {
 	return func(token string) string {
 		userId, _ := crypto.GetIDByToken(token, conf)
@@ -171,5 +185,12 @@ func DefaultExcludeKeywords() []string {
 	return []string{
 		"deadline exceeded",
 		"context canceled",
+	}
+}
+
+func DefaultCombineInfraErrors() []string {
+	return []string{
+		"connection failure",
+		"connection refused",
 	}
 }
