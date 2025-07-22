@@ -122,6 +122,7 @@ func extractUserIDViaJSON(req interface{}) (string, bool) {
 func DefaultLogLevelSpecifier(
 	apiErrorClassifier ApiErrorClassifier,
 	excludeErrorKeywords []string,
+	shouldLogApiErrors bool,
 ) func(
 	logger *zerolog.Logger,
 	err error,
@@ -146,7 +147,10 @@ func DefaultLogLevelSpecifier(
 		}
 
 		if apiErr, ok := apiErrorClassifier(err); ok {
-			return logger.Warn().Err(err), apiErr
+			if shouldLogApiErrors {
+				return logger.Warn().Err(err), apiErr
+			}
+			return logger.Info().Err(err), nil
 		}
 
 		return logger.Error().Err(err), errors.New("internal server error")
