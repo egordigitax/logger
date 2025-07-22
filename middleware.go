@@ -120,7 +120,8 @@ func extractUserIDViaJSON(req interface{}) (string, bool) {
 }
 
 func DefaultLogLevelSpecifier(
-	ApiErrorClassifier ApiErrorClassifier,
+	apiErrorClassifier ApiErrorClassifier,
+	excludeErrorKeywords []string,
 ) func(
 	logger *zerolog.Logger,
 	err error,
@@ -133,17 +134,19 @@ func DefaultLogLevelSpecifier(
 			return logger.Info(), nil
 		}
 
+		for _, keyword := range excludeErrorKeywords {
+			if strings.Contains(err.Error(), keyword) {
+				return logger.Info(), nil
+			}
+		}
+
 		var fiberErr *fiber.Error
 		if errors.As(err, &fiberErr) && fiberErr.Code == fiber.StatusNotFound {
 			return logger.Info().Err(err), fiberErr
 		}
 
-		if apiErr, ok := ApiErrorClassifier(err); ok {
+		if apiErr, ok := apiErrorClassifier(err); ok {
 			return logger.Warn().Err(err), apiErr
-		}
-
-		if strings.Contains(strings.ToLower(err.Error()), "deadline") {
-			return logger.Warn().Err(err), err
 		}
 
 		return logger.Error().Err(err), errors.New("internal server error")
@@ -154,5 +157,12 @@ func DefaultUserIDGetter(conf *crypto.Config) UserIDGetter {
 	return func(token string) string {
 		userId, _ := crypto.GetIDByToken(token, conf)
 		return strconv.FormatUint(userId, 10)
+	}
+}
+
+func DefaultExcludeKeywords() []string {
+	return []string{
+		"deadline exceeded",
+		"context canceled",
 	}
 }
