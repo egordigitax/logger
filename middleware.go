@@ -51,8 +51,7 @@ func FiberMiddleware(
 
 		log, _ := logLevelSpecifier(&enrichedLogger, err)
 
-		log.
-			Str("body", string(c.Request().Body())).
+		log.Str("body", string(c.Request().Body())).
 			Str("response", string(c.Response().Body())).
 			Int("status", c.Response().StatusCode()).
 			Dur("resp_time", time.Since(start)).
@@ -61,7 +60,10 @@ func FiberMiddleware(
 		return err
 	}
 }
-func GRPCInterceptor(logger *zerolog.Logger) grpc.UnaryServerInterceptor {
+func GRPCInterceptor(
+	logger *zerolog.Logger,
+	logLevelSpecifier LogLevelSpecifier,
+) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -76,8 +78,9 @@ func GRPCInterceptor(logger *zerolog.Logger) grpc.UnaryServerInterceptor {
 				tryGetUserId = "unknown"
 			}
 
-			logger.Error().
-				Str("method", info.FullMethod).
+			log, _ := logLevelSpecifier(logger, err)
+
+			log.Str("method", info.FullMethod).
 				Str("user_id", tryGetUserId).
 				Interface("request", req).
 				Err(err).
