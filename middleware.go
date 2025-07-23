@@ -167,19 +167,21 @@ func DefaultLogLevelSpecifier(
 			return logger.Info().Err(err), msg, nil
 		}
 
-		if config.ShouldLogContextErrors {
-			for _, keyword := range config.ContextErrorsKeywords {
-				if err != nil && strings.Contains(err.Error(), keyword) {
-					return logger.Warn().Str(FingerprintKey, ContextFingerprint), "context errors", err
+		for _, keyword := range config.ContextErrorsKeywords {
+			if err != nil && strings.Contains(err.Error(), keyword) {
+				if !config.ShouldLogContextErrors {
+					return logger.Info().Err(err), msg, err
 				}
+				return logger.Warn().Str(FingerprintKey, ContextFingerprint), "context errors", err
 			}
 		}
 
-		if config.ShouldLogInfraErrors {
-			for _, keyword := range config.InfraErrorsKeywords {
-				if err != nil && strings.Contains(err.Error(), keyword) {
-					return logger.Warn().Str(FingerprintKey, InfraFingerprint), "infra problems", err
+		for _, keyword := range config.InfraErrorsKeywords {
+			if err != nil && strings.Contains(err.Error(), keyword) {
+				if !config.ShouldLogInfraErrors {
+					return logger.Info().Err(err), msg, err
 				}
+				return logger.Warn().Str(FingerprintKey, InfraFingerprint), "infra problems", err
 			}
 		}
 
