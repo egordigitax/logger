@@ -2,8 +2,6 @@ module github.com/egordigitax/logger
 
 go 1.23.0
 
-toolchain go1.24.3
-
 require (
 	github.com/egordigitax/zerolog-sentry v0.0.6
 	github.com/gofiber/fiber/v2 v2.52.9
