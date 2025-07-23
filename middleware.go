@@ -172,7 +172,7 @@ func DefaultLogLevelSpecifier(
 				if !config.ShouldLogContextErrors {
 					return logger.Info().Err(err), msg, err
 				}
-				return logger.Warn().Str(FingerprintKey, ContextFingerprint), "context errors", err
+				return logger.Warn().Err(err).Str(FingerprintKey, ContextFingerprint), "context errors", err
 			}
 		}
 
@@ -181,7 +181,7 @@ func DefaultLogLevelSpecifier(
 				if !config.ShouldLogInfraErrors {
 					return logger.Info().Err(err), msg, err
 				}
-				return logger.Warn().Str(FingerprintKey, InfraFingerprint), "infra problems", err
+				return logger.Warn().Err(err).Str(FingerprintKey, InfraFingerprint), "infra problems", err
 			}
 		}
 
