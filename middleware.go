@@ -23,7 +23,7 @@ const (
 )
 
 type UserIDGetter func(token string) string
-type LogLevelSpecifier func(logger *zerolog.Logger, msg string, err error) (*zerolog.Event, string, error)
+type LogLevelSpecifier func(logger *zerolog.Logger, msg string, err error) (*zerolog.Event, string)
 type ApiErrorClassifier func(err error) (error, bool)
 
 func FiberMiddleware(
@@ -55,7 +55,7 @@ func FiberMiddleware(
 
 		err := c.Next()
 
-		log, msg, _ := logLevelSpecifier(
+		log, msg := logLevelSpecifier(
 			&enrichedLogger,
 			fmt.Sprintf("%s handle http request", c.Path()),
 			err,
@@ -92,7 +92,7 @@ func GRPCInterceptor(
 			tryGetUserId = "unknown"
 		}
 
-		log, msg, _ := logLevelSpecifier(
+		log, msg := logLevelSpecifier(
 			logger,
 			fmt.Sprintf("%s handle grpc request", info.FullMethod),
 			err,
@@ -157,47 +157,47 @@ func DefaultLogLevelSpecifier(
 	logger *zerolog.Logger,
 	msg string,
 	err error,
-) (*zerolog.Event, string, error) {
+) (*zerolog.Event, string) {
 	return func(
 		logger *zerolog.Logger,
 		msg string,
 		err error,
-	) (*zerolog.Event, string, error) {
+	) (*zerolog.Event, string) {
 		if err == nil {
-			return logger.Info().Err(err), msg, nil
+			return logger.Info().Err(err), msg
 		}
 
 		for _, keyword := range config.ContextErrorsKeywords {
 			if err != nil && strings.Contains(err.Error(), keyword) {
 				if !config.ShouldLogContextErrors {
-					return logger.Info().Err(err), msg, err
+					return logger.Info().Err(err), msg
 				}
-				return logger.Warn().Err(err).Str(FingerprintKey, ContextFingerprint), "context errors", err
+				return logger.Warn().Err(err).Str(FingerprintKey, ContextFingerprint), "context errors"
 			}
 		}
 
 		for _, keyword := range config.InfraErrorsKeywords {
 			if err != nil && strings.Contains(err.Error(), keyword) {
 				if !config.ShouldLogInfraErrors {
-					return logger.Info().Err(err), msg, err
+					return logger.Info().Err(err), msg
 				}
-				return logger.Warn().Err(err).Str(FingerprintKey, InfraFingerprint), "infra problems", err
+				return logger.Warn().Err(err).Str(FingerprintKey, InfraFingerprint), "infra problems"
 			}
 		}
 
 		var fiberErr *fiber.Error
 		if errors.As(err, &fiberErr) && fiberErr.Code == fiber.StatusNotFound {
-			return logger.Info().Err(err), msg, fiberErr
+			return logger.Info().Err(err), msg
 		}
 
 		if apiErr, ok := config.ApiErrorsGetterFunc(err); ok {
 			if config.ShouldLogApiErrors {
-				return logger.Warn().Err(err), msg, apiErr
+				return logger.Warn().Err(apiErr), msg
 			}
-			return logger.Info().Err(err), msg, nil
+			return logger.Info().Err(apiErr), msg
 		}
 
-		return logger.Error().Err(err), msg, errors.New("internal server error")
+		return logger.Error().Err(err), msg
 	}
 }
 
