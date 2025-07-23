@@ -16,8 +16,14 @@ import (
 	"time"
 )
 
+const (
+	FingerprintKey     = "fingerprint"
+	InfraFingerprint   = "infra"
+	ContextFingerprint = "context"
+)
+
 type UserIDGetter func(token string) string
-type LogLevelSpecifier func(logger *zerolog.Logger, err error) (*zerolog.Event, error)
+type LogLevelSpecifier func(logger *zerolog.Logger, msg string, err error) (*zerolog.Event, string, error)
 type ApiErrorClassifier func(err error) (error, bool)
 
 func FiberMiddleware(
@@ -49,14 +55,18 @@ func FiberMiddleware(
 
 		err := c.Next()
 
-		log, _ := logLevelSpecifier(&enrichedLogger, err)
+		log, msg, _ := logLevelSpecifier(
+			&enrichedLogger,
+			fmt.Sprintf("%s handle http request", c.Path()),
+			err,
+		)
 
 		event := log.Str("body", string(c.Request().Body())).
 			Str("response", string(c.Response().Body())).
 			Int("status", c.Response().StatusCode()).
 			Dur("resp_time", time.Since(start))
 
-		SendEvent(event, err, fmt.Sprintf("%s handle http request", c.Path()))
+		event.Msg(msg)
 
 		return err
 	}
@@ -72,22 +82,28 @@ func GRPCInterceptor(
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		resp, err := handler(ctx, req)
-		if err != nil {
 
-			tryGetUserId, ok := extractUserIDViaJSON(req)
-			if !ok {
-				tryGetUserId = "unknown"
-			}
-
-			log, _ := logLevelSpecifier(logger, err)
-
-			event := log.Str("method", info.FullMethod).
-				Str("user_id", tryGetUserId).
-				Interface("request", req).
-				Err(err)
-
-			SendEvent(event, err, fmt.Sprintf("%s handle grpc request", info.FullMethod))
+		if err == nil {
+			return resp, nil
 		}
+
+		tryGetUserId, ok := extractUserIDViaJSON(req)
+		if !ok {
+			tryGetUserId = "unknown"
+		}
+
+		log, msg, _ := logLevelSpecifier(
+			logger,
+			fmt.Sprintf("%s handle grpc request", info.FullMethod),
+			err,
+		)
+
+		event := log.Str("method", info.FullMethod).
+			Str("user_id", tryGetUserId).
+			Interface("request", req)
+
+		event.Msg(msg)
+
 		return resp, err
 	}
 }
@@ -124,53 +140,63 @@ func extractUserIDViaJSON(req interface{}) (string, bool) {
 	return "", false
 }
 
+type SpecifierConfig struct {
+	ApiErrorsGetterFunc ApiErrorClassifier
+	ShouldLogApiErrors  bool
+
+	ContextErrorsKeywords  []string
+	ShouldLogContextErrors bool
+
+	InfraErrorsKeywords  []string
+	ShouldLogInfraErrors bool
+}
+
 func DefaultLogLevelSpecifier(
-	apiErrorClassifier ApiErrorClassifier,
-	excludeErrorKeywords []string,
-	shouldLogApiErrors bool,
+	config *SpecifierConfig,
 ) func(
 	logger *zerolog.Logger,
+	msg string,
 	err error,
-) (*zerolog.Event, error) {
+) (*zerolog.Event, string, error) {
 	return func(
 		logger *zerolog.Logger,
+		msg string,
 		err error,
-	) (*zerolog.Event, error) {
+	) (*zerolog.Event, string, error) {
 		if err == nil {
-			return logger.Info(), nil
+			return logger.Info().Err(err), msg, nil
 		}
 
-		for _, keyword := range excludeErrorKeywords {
-			if strings.Contains(err.Error(), keyword) {
-				return logger.Info(), nil
+		if config.ShouldLogContextErrors {
+			for _, keyword := range config.ContextErrorsKeywords {
+				if err != nil && strings.Contains(err.Error(), keyword) {
+					return logger.Warn().Str(FingerprintKey, ContextFingerprint), "context errors", err
+				}
+			}
+		}
+
+		if config.ShouldLogInfraErrors {
+			for _, keyword := range config.InfraErrorsKeywords {
+				if err != nil && strings.Contains(err.Error(), keyword) {
+					return logger.Warn().Str(FingerprintKey, InfraFingerprint), "infra problems", err
+				}
 			}
 		}
 
 		var fiberErr *fiber.Error
 		if errors.As(err, &fiberErr) && fiberErr.Code == fiber.StatusNotFound {
-			return logger.Info().Err(err), fiberErr
+			return logger.Info().Err(err), msg, fiberErr
 		}
 
-		if apiErr, ok := apiErrorClassifier(err); ok {
-			if shouldLogApiErrors {
-				return logger.Warn().Err(err), apiErr
+		if apiErr, ok := config.ApiErrorsGetterFunc(err); ok {
+			if config.ShouldLogApiErrors {
+				return logger.Warn().Err(err), msg, apiErr
 			}
-			return logger.Info().Err(err), nil
+			return logger.Info().Err(err), msg, nil
 		}
 
-		return logger.Error().Err(err), errors.New("internal server error")
+		return logger.Error().Err(err), msg, errors.New("internal server error")
 	}
-}
-
-func SendEvent(event *zerolog.Event, err error, msg string) {
-	for _, keyword := range DefaultCombineInfraErrors() {
-		if err != nil && strings.Contains(err.Error(), keyword) {
-			event.Str("fingerprint", "infra").Msg("infra problems")
-			return
-		}
-	}
-	event.Msg(msg)
-	return
 }
 
 func DefaultUserIDGetter(conf *crypto.Config) UserIDGetter {
@@ -180,7 +206,7 @@ func DefaultUserIDGetter(conf *crypto.Config) UserIDGetter {
 	}
 }
 
-func DefaultExcludeKeywords() []string {
+func DefaultContextKeywords() []string {
 	return []string{
 		"deadline exceeded",
 		"context canceled",
@@ -191,5 +217,7 @@ func DefaultCombineInfraErrors() []string {
 	return []string{
 		"connection failure",
 		"connection refused",
+		"dial tcp",
+		"upstream connect",
 	}
 }
