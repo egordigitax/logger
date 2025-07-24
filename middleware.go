@@ -210,7 +210,6 @@ func DefaultUserIDGetter(conf *crypto.Config) UserIDGetter {
 
 func DefaultContextKeywords() []string {
 	return []string{
-		"deadline exceeded",
 		"context canceled",
 	}
 }
@@ -220,6 +219,17 @@ func DefaultCombineInfraErrors() []string {
 		"connection failure",
 		"connection refused",
 		"dial tcp",
+		"read tcp",
+		"write tcp",
 		"upstream connect",
+		"connection reset by peer",
+		"i/o timeout",
+		"no such host",
+		"network is unreachable",
+		"connection timed out",
+		"broken pipe",
+		"TLS handshake timeout",
+		"EOF",
+		"context deadline exceeded",
 	}
 }
